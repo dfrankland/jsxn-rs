@@ -66,7 +66,15 @@ fn jsx_expression<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Js
             char('{'),
             cut(terminated(
                 map(
-                    alt((map(json_value, JsxValue::JsonValue), root)),
+                    alt((
+                        map(json_value, |json_value| {
+                            if let JsonValue::JsxValue(jsx_value) = json_value {
+                                return *jsx_value;
+                            }
+                            JsxValue::JsonValue(json_value)
+                        }),
+                        root,
+                    )),
                     |jsx_value| JsxValue::JsxExpression(Box::new(jsx_value)),
                 ),
                 preceded(sp, char('}')),

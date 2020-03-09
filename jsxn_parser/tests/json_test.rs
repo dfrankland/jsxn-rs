@@ -1,4 +1,4 @@
-use jsxn_parser::json;
+use jsxn_parser::{json, jsx};
 use nom::{
     error::{convert_error, ErrorKind, VerboseError, VerboseErrorKind},
     Err,
@@ -10,7 +10,8 @@ const VALID_JSON: &str = r#"
         "a": 42,
         "b": ["this is a string", "this is too 👍 \u2605", 12],
         "c": { "hello" : "world" },
-        "d": null
+        "d": null,
+        "e": <Element prop="value" />
     }
 "#;
 
@@ -53,6 +54,23 @@ fn parse_valid_json() {
                     }),
                 );
                 object.insert(String::from("d"), json::JsonValue::Null);
+                object.insert(
+                    String::from("e"),
+                    json::JsonValue::JsxValue(Box::new(jsx::JsxValue::JsxElement((
+                        String::from("Element"),
+                        {
+                            let mut props = HashMap::new();
+                            props.insert(
+                                String::from("prop"),
+                                jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(
+                                    "value",
+                                ))),
+                            );
+                            props
+                        },
+                        vec![],
+                    )))),
+                );
                 object
             })
         ))

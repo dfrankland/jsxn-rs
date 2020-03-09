@@ -1,4 +1,4 @@
-use crate::shared::sp;
+use crate::{jsx, jsx::JsxValue, shared::sp};
 use nom::{
     branch::alt,
     bytes::complete::{escaped, is_not, tag},
@@ -32,6 +32,9 @@ pub enum JsonValue {
 
     /// A JSON null value
     Null,
+
+    /// A JSX value
+    JsxValue(Box<JsxValue>),
 }
 
 fn boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, bool, E> {
@@ -117,6 +120,9 @@ pub(crate) fn json_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
             map(double, JsonValue::Num),
             map(boolean, JsonValue::Boolean),
             map(tag("null"), |_| JsonValue::Null),
+            map(jsx::root, |jsx_value| {
+                JsonValue::JsxValue(Box::new(jsx_value))
+            }),
         )),
     )(i)
 }
