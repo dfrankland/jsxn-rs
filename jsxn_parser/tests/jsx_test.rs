@@ -32,30 +32,30 @@ fn parse_valid_jsx_element() {
             jsx::JsxValue::JsxElement((
                 String::from("Hello"),
                 {
-                    let mut object = HashMap::new();
-                    object.insert(
+                    let mut props = HashMap::new();
+                    props.insert(
                         String::from("friend"),
                         jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from("World"))),
                     );
-                    object.insert(
+                    props.insert(
                         String::from("count"),
                         jsx::JsxValue::JsxExpression(Box::new(jsx::JsxValue::JsonValue(
                             json::JsonValue::Num(1.0),
                         ))),
                     );
-                    object
+                    props
                 },
                 {
                     let mut children = vec![];
                     children.push(jsx::JsxValue::JsxElement((
                         String::from("Goodbye"),
                         {
-                            let mut object = HashMap::new();
-                            object.insert(
+                            let mut props = HashMap::new();
+                            props.insert(
                                 String::from("signOff"),
                                 jsx::JsxValue::JsonValue(json::JsonValue::Boolean(true)),
                             );
-                            object
+                            props
                         },
                         vec![],
                     )));
@@ -76,14 +76,14 @@ fn parse_valid_jsx_element() {
                         jsx::JsxValue::JsxElement((
                             String::from("ExpressionInception"),
                             {
-                                let mut object = HashMap::new();
-                                object.insert(
+                                let mut props = HashMap::new();
+                                props.insert(
                                     String::from("nullProp"),
                                     jsx::JsxValue::JsxExpression(Box::new(
                                         jsx::JsxValue::JsonValue(json::JsonValue::Null),
                                     )),
                                 );
-                                object.insert(String::from("objectProp"), {
+                                props.insert(String::from("objectProp"), {
                                     let mut object = HashMap::new();
                                     object.insert(
                                         String::from("cool"),
@@ -93,7 +93,7 @@ fn parse_valid_jsx_element() {
                                         jsx::JsxValue::JsonValue(json::JsonValue::Object(object)),
                                     ))
                                 });
-                                object.insert(String::from("arrayProp"), {
+                                props.insert(String::from("arrayProp"), {
                                     let mut array = vec![];
                                     array.push(json::JsonValue::Num(0.0));
                                     array.push(json::JsonValue::Str(String::from("1")));
@@ -103,7 +103,7 @@ fn parse_valid_jsx_element() {
                                         jsx::JsxValue::JsonValue(json::JsonValue::Array(array)),
                                     ))
                                 });
-                                object
+                                props
                             },
                             vec![],
                         )),
