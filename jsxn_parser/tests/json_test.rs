@@ -1,6 +1,6 @@
 use jsxn_parser::{json, jsx};
 use nom::{
-    error::{convert_error, ErrorKind, VerboseError, VerboseErrorKind},
+    error::{convert_error, ErrorKind, VerboseError},
     Err,
 };
 use std::collections::HashMap;
@@ -89,35 +89,6 @@ fn parse_invalid_json() {
 }
 
 #[test]
-fn parse_invalid_json_verbose() {
-    assert_eq!(json::root::<VerboseError<&str>>(INVALID_JSON), Err(
-        Err::Failure(
-            VerboseError {
-                errors: vec![
-                    (
-                        "1\"hello\" : \"world\" }\n    }\n",
-                        VerboseErrorKind::Char(
-                            '}',
-                        ),
-                    ),
-                    (
-                        "{ 1\"hello\" : \"world\" }\n    }\n",
-                        VerboseErrorKind::Context(
-                            "map",
-                        ),
-                    ),
-                    (
-                        "{\n        \"a\": 42,\n        \"b\": [\"x\", \"y\", 12],\n        \"c\": { 1\"hello\" : \"world\" }\n    }\n",
-                        VerboseErrorKind::Context(
-                            "map",
-                        ),
-                    )
-                ]
-            }
-    )))
-}
-
-#[test]
 fn parse_invalid_json_verbose_trace() {
     if let Err(Err::Error(e)) | Err(Err::Failure(e)) =
         json::root::<VerboseError<&str>>(INVALID_JSON)
@@ -129,11 +100,15 @@ fn parse_invalid_json_verbose_trace() {
                ^
 expected '}', found 1
 
-1: at line 5, in map:
+1: at line 5, in json object:
         "c": { 1"hello" : "world" }
              ^
 
-2: at line 2, in map:
+2: at line 4, in json key value:
+        "b": ["x", "y", 12],
+                            ^
+
+3: at line 2, in json object:
     {
     ^
 

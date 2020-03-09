@@ -1,4 +1,4 @@
-use crate::{jsx, jsx::JsxValue, shared::sp};
+use crate::{jsx::{root as jsx_value, JsxValue}, shared::sp};
 use nom::{
     branch::alt,
     bytes::complete::{escaped, is_not, tag},
@@ -37,24 +37,24 @@ pub enum JsonValue {
     JsxValue(Box<JsxValue>),
 }
 
-fn boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, bool, E> {
+fn json_boolean<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, bool, E> {
     let parse_true = value(true, tag("true"));
     let parse_false = value(false, tag("false"));
-    alt((parse_true, parse_false))(input)
+    context("json boolean", alt((parse_true, parse_false)))(i)
 }
 
-fn unicode_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
+fn json_unicode_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
     context(
-        "unicode sequence",
+        "json unicode sequence",
         verify(preceded(char('u'), hex_digit1), |hex_digits: &str| {
             hex_digits.len() == 4
         }),
     )(i)
 }
 
-pub(crate) fn string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, String, E> {
+pub(crate) fn json_string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, String, E> {
     context(
-        "string",
+        "json string",
         map(
             delimited(
                 char('\"'),
@@ -63,7 +63,7 @@ pub(crate) fn string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str,
                     '\\',
                     alt((
                         map(one_of("\"\\/bfnrt"), |_| ()),
-                        map(unicode_sequence, |_| ()),
+                        map(json_unicode_sequence, |_| ()),
                     )),
                 ),
                 char('\"'),
@@ -73,9 +73,9 @@ pub(crate) fn string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str,
     )(i)
 }
 
-fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<JsonValue>, E> {
+fn json_array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<JsonValue>, E> {
     context(
-        "array",
+        "json array",
         preceded(
             char('['),
             cut(terminated(
@@ -86,22 +86,22 @@ fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<JsonVal
     )(i)
 }
 
-fn key_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, (String, JsonValue), E> {
-    separated_pair(
-        preceded(sp, string),
+fn json_key_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, (String, JsonValue), E> {
+    context("json key value", separated_pair(
+        preceded(sp, json_string),
         cut(preceded(sp, char(':'))),
         json_value,
-    )(i)
+    ))(i)
 }
 
-fn hash<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, HashMap<String, JsonValue>, E> {
+fn json_object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, HashMap<String, JsonValue>, E> {
     context(
-        "map",
+        "json object",
         preceded(
             char('{'),
             cut(terminated(
                 map(
-                    separated_list(preceded(sp, char(',')), key_value),
+                    separated_list(preceded(sp, char(',')), json_key_value),
                     |tuple_vec| tuple_vec.into_iter().collect(),
                 ),
                 preceded(sp, char('}')),
@@ -114,14 +114,14 @@ pub(crate) fn json_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
     preceded(
         sp,
         alt((
-            map(hash, JsonValue::Object),
-            map(array, JsonValue::Array),
-            map(string, JsonValue::Str),
+            map(json_object, JsonValue::Object),
+            map(json_array, JsonValue::Array),
+            map(json_string, JsonValue::Str),
             map(double, JsonValue::Num),
-            map(boolean, JsonValue::Boolean),
+            map(json_boolean, JsonValue::Boolean),
             map(tag("null"), |_| JsonValue::Null),
-            map(jsx::root, |jsx_value| {
-                JsonValue::JsxValue(Box::new(jsx_value))
+            map(jsx_value, |jsx| {
+                JsonValue::JsxValue(Box::new(jsx))
             }),
         )),
     )(i)
@@ -131,7 +131,7 @@ pub(crate) fn json_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
 pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, JsonValue, E> {
     delimited(
         sp,
-        alt((map(hash, JsonValue::Object), map(array, JsonValue::Array))),
+        alt((map(json_object, JsonValue::Object), map(json_array, JsonValue::Array))),
         opt(sp),
     )(i)
 }

@@ -1,5 +1,5 @@
 use crate::{
-    json::{json_value, string, JsonValue},
+    json::{json_value, json_string, JsonValue},
     shared::sp,
 };
 use nom::{
@@ -67,15 +67,15 @@ fn jsx_expression<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Js
             cut(terminated(
                 map(
                     alt((
-                        map(json_value, |json_value| {
-                            if let JsonValue::JsxValue(jsx_value) = json_value {
-                                return *jsx_value;
+                        map(json_value, |json| {
+                            if let JsonValue::JsxValue(jsx) = json {
+                                return *jsx;
                             }
-                            JsxValue::JsonValue(json_value)
+                            JsxValue::JsonValue(json)
                         }),
                         root,
                     )),
-                    |jsx_value| JsxValue::JsxExpression(Box::new(jsx_value)),
+                    |jsx| JsxValue::JsxExpression(Box::new(jsx)),
                 ),
                 preceded(sp, char('}')),
             )),
@@ -110,7 +110,7 @@ fn jsx_element_opening_tag<'a, E: ParseError<&'a str>>(
                                     sp,
                                     alt((
                                         jsx_expression,
-                                        map(string, |s| JsxValue::JsonValue(JsonValue::Str(s))),
+                                        map(json_string, |s| JsxValue::JsonValue(JsonValue::Str(s))),
                                     )),
                                 ),
                             ),
