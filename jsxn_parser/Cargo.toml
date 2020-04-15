@@ -7,7 +7,7 @@ license = "MIT"
 description = "Put JSX in your JSON and JSON in your JSX!"
 homepage = "https://github.com/dfrankland/jsxn-rs"
 repository = "https://github.com/dfrankland/jsxn-rs"
-keywords = ["json", "jsx", "jsxn", "parser", "serde", "nom"]
+keywords = ["json", "jsx", "jsxn", "parser"]
 categories = ["encoding", "parser-implementations", "parsing", "web-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
