@@ -1,5 +1,5 @@
 use crate::{
-    json::{json_value, json_string, JsonValue},
+    json::{json_string, json_value, JsonValue},
     shared::sp,
 };
 use nom::{
@@ -11,7 +11,8 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
     IResult,
 };
-use std::collections::HashMap;
+use serde::{Serialize, Serializer};
+use std::collections::BTreeMap;
 
 /// A JSX-specific value
 #[derive(Debug, PartialEq, Clone)]
@@ -20,7 +21,7 @@ pub enum JsxValue {
     JsxElement(JsxElement),
 
     /// A JSX Fragment which only contains an array of children
-    JsxFragment(Vec<JsxValue>),
+    JsxFragment(JsxFragment),
 
     /// A JSON value
     JsonValue(JsonValue),
@@ -30,9 +31,61 @@ pub enum JsxValue {
     JsxExpression(Box<JsxValue>),
 }
 
+impl Serialize for JsxValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            JsxValue::JsxElement(jsx_element) => jsx_element.serialize(serializer),
+            JsxValue::JsxFragment(jsx_fragment) => jsx_fragment.serialize(serializer),
+            JsxValue::JsonValue(json_value) => json_value.serialize(serializer),
+            JsxValue::JsxExpression(jsx_expression) => jsx_expression.serialize(serializer),
+        }
+    }
+}
+
 /// JSX Element that correlates to the arguments for `React.createElement`.
 /// (type, props, children)
-pub type JsxElement = (String, HashMap<String, JsxValue>, Vec<JsxValue>);
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct JsxElement {
+    r#type: String,
+    props: BTreeMap<String, JsxValue>,
+    children: Vec<JsxValue>,
+}
+
+impl JsxElement {
+    /// Create a new JSX Element
+    pub fn new(
+        r#type: String,
+        props: BTreeMap<String, JsxValue>,
+        children: Vec<JsxValue>,
+    ) -> JsxElement {
+        JsxElement {
+            r#type,
+            props,
+            children,
+        }
+    }
+}
+
+/// JSX Element that correlates to the arguments for `React.createElement`.
+/// (type, props, children)
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct JsxFragment {
+    r#type: String,
+    children: Vec<JsxValue>,
+}
+
+impl JsxFragment {
+    /// Create a new JSX Fragment
+    pub fn new(children: Vec<JsxValue>) -> JsxFragment {
+        JsxFragment {
+            r#type: String::from("Fragment"),
+            children,
+        }
+    }
+}
 
 fn jsx_text<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, JsxValue, E> {
     let (input_remainder, (chars, ..)) = context(
@@ -92,7 +145,7 @@ fn jsx_children<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<
 
 fn jsx_element_opening_tag<'a, E: ParseError<&'a str>>(
     i: &'a str,
-) -> IResult<&'a str, (String, HashMap<String, JsxValue>), E> {
+) -> IResult<&'a str, (String, BTreeMap<String, JsxValue>), E> {
     context(
         "jsx element opening tag",
         preceded(
@@ -110,7 +163,9 @@ fn jsx_element_opening_tag<'a, E: ParseError<&'a str>>(
                                     sp,
                                     alt((
                                         jsx_expression,
-                                        map(json_string, |s| JsxValue::JsonValue(JsonValue::Str(s))),
+                                        map(json_string, |s| {
+                                            JsxValue::JsonValue(JsonValue::Str(s))
+                                        }),
                                     )),
                                 ),
                             ),
@@ -124,8 +179,8 @@ fn jsx_element_opening_tag<'a, E: ParseError<&'a str>>(
                                 }),
                             ),
                         )),
-                        HashMap::new(),
-                        |mut acc: HashMap<_, _>, (key, value)| {
+                        BTreeMap::new(),
+                        |mut acc: BTreeMap<_, _>, (key, value)| {
                             acc.insert(key, value);
                             acc
                         },
@@ -178,7 +233,7 @@ fn jsx_element_self_closing<'a, E: ParseError<&'a str>>(
             preceded(sp, preceded(char('/'), preceded(sp, char('>')))),
         ),
     )(i)?;
-    Ok((input_remainder, (tag, props, vec![])))
+    Ok((input_remainder, JsxElement::new(tag, props, vec![])))
 }
 
 fn jsx_element_with_children<'a, E: ParseError<&'a str>>(
@@ -196,7 +251,7 @@ fn jsx_element_with_children<'a, E: ParseError<&'a str>>(
         ),
     )(i)?;
 
-    Ok((input_remainder, (tag, props, children)))
+    Ok((input_remainder, JsxElement::new(tag, props, children)))
 }
 
 fn jsx_fragment<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, JsxValue, E> {
@@ -208,7 +263,7 @@ fn jsx_fragment<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, JsxV
                 jsx_children,
                 jsx_fragement_closing_tag,
             ),
-            JsxValue::JsxFragment,
+            |x| JsxValue::JsxFragment(JsxFragment::new(x)),
         ),
     )(i)
 }

@@ -3,7 +3,7 @@ use nom::{
     error::{convert_error, ErrorKind, VerboseError},
     Err,
 };
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const VALID_JSON: &str = r#"
     {
@@ -30,7 +30,7 @@ fn parse_valid_json() {
         Ok((
             "",
             json::JsonValue::Object({
-                let mut object = HashMap::new();
+                let mut object = BTreeMap::new();
                 object.insert(String::from("a"), json::JsonValue::Num(42.0));
                 object.insert(
                     String::from("b"),
@@ -45,7 +45,7 @@ fn parse_valid_json() {
                 object.insert(
                     String::from("c"),
                     json::JsonValue::Object({
-                        let mut object = HashMap::new();
+                        let mut object = BTreeMap::new();
                         object.insert(
                             String::from("hello"),
                             json::JsonValue::Str(String::from("world")),
@@ -56,20 +56,22 @@ fn parse_valid_json() {
                 object.insert(String::from("d"), json::JsonValue::Null);
                 object.insert(
                     String::from("e"),
-                    json::JsonValue::JsxValue(Box::new(jsx::JsxValue::JsxElement((
-                        String::from("Element"),
-                        {
-                            let mut props = HashMap::new();
-                            props.insert(
-                                String::from("prop"),
-                                jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(
-                                    "value",
-                                ))),
-                            );
-                            props
-                        },
-                        vec![],
-                    )))),
+                    json::JsonValue::JsxValue(Box::new(jsx::JsxValue::JsxElement(
+                        jsx::JsxElement::new(
+                            String::from("Element"),
+                            {
+                                let mut props = BTreeMap::new();
+                                props.insert(
+                                    String::from("prop"),
+                                    jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(
+                                        "value",
+                                    ))),
+                                );
+                                props
+                            },
+                            vec![],
+                        ),
+                    ))),
                 );
                 object
             })
@@ -115,4 +117,33 @@ expected '}', found 1
 "#
         )
     }
+}
+
+#[test]
+fn serialize_json() {
+    assert_eq!(
+        serde_json::to_string_pretty(&json::root::<(&str, ErrorKind)>(VALID_JSON).unwrap().1)
+            .unwrap(),
+        String::from(
+            r#"{
+  "a": 42.0,
+  "b": [
+    "this is a string",
+    "this is too 👍 \\u2605",
+    12.0
+  ],
+  "c": {
+    "hello": "world"
+  },
+  "d": null,
+  "e": {
+    "type": "Element",
+    "props": {
+      "prop": "value"
+    },
+    "children": []
+  }
+}"#
+        )
+    )
 }

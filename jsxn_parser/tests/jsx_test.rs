@@ -1,6 +1,6 @@
 use jsxn_parser::{json, jsx};
 use nom::error::ErrorKind;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const VALID_JSX_ELEMENT: &str = r#"
     <Hello friend="World" count={1}>
@@ -29,10 +29,10 @@ fn parse_valid_jsx_element() {
         jsx::root::<(&str, ErrorKind)>(VALID_JSX_ELEMENT),
         Ok((
             "",
-            jsx::JsxValue::JsxElement((
+            jsx::JsxValue::JsxElement(jsx::JsxElement::new(
                 String::from("Hello"),
                 {
-                    let mut props = HashMap::new();
+                    let mut props = BTreeMap::new();
                     props.insert(
                         String::from("friend"),
                         jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from("World"))),
@@ -47,10 +47,10 @@ fn parse_valid_jsx_element() {
                 },
                 {
                     let mut children = vec![];
-                    children.push(jsx::JsxValue::JsxElement((
+                    children.push(jsx::JsxValue::JsxElement(jsx::JsxElement::new(
                         String::from("Goodbye"),
                         {
-                            let mut props = HashMap::new();
+                            let mut props = BTreeMap::new();
                             props.insert(
                                 String::from("signOff"),
                                 jsx::JsxValue::JsonValue(json::JsonValue::Boolean(true)),
@@ -64,7 +64,7 @@ fn parse_valid_jsx_element() {
                     )));
                     children.push(jsx::JsxValue::JsxExpression(Box::new(
                         jsx::JsxValue::JsonValue(json::JsonValue::Object({
-                            let mut object = HashMap::new();
+                            let mut object = BTreeMap::new();
                             object.insert(
                                 String::from("Is it okay to put JSON values here?"),
                                 json::JsonValue::Boolean(true),
@@ -73,10 +73,10 @@ fn parse_valid_jsx_element() {
                         })),
                     )));
                     children.push(jsx::JsxValue::JsxExpression(Box::new(
-                        jsx::JsxValue::JsxElement((
+                        jsx::JsxValue::JsxElement(jsx::JsxElement::new(
                             String::from("ExpressionInception"),
                             {
-                                let mut props = HashMap::new();
+                                let mut props = BTreeMap::new();
                                 props.insert(
                                     String::from("nullProp"),
                                     jsx::JsxValue::JsxExpression(Box::new(
@@ -84,7 +84,7 @@ fn parse_valid_jsx_element() {
                                     )),
                                 );
                                 props.insert(String::from("objectProp"), {
-                                    let mut object = HashMap::new();
+                                    let mut object = BTreeMap::new();
                                     object.insert(
                                         String::from("cool"),
                                         json::JsonValue::Boolean(true),
@@ -108,17 +108,17 @@ fn parse_valid_jsx_element() {
                             vec![],
                         )),
                     )));
-                    children.push(jsx::JsxValue::JsxFragment({
+                    children.push(jsx::JsxValue::JsxFragment(jsx::JsxFragment::new({
                         let mut children = vec![];
-                        children.push(jsx::JsxValue::JsxFragment({
+                        children.push(jsx::JsxValue::JsxFragment(jsx::JsxFragment::new({
                             let mut children = vec![];
                             children.push(jsx::JsxValue::JsonValue(json::JsonValue::Str(
                                 String::from("F R A G M E N T S"),
                             )));
                             children
-                        }));
+                        })));
                         children
-                    }));
+                    })));
                     children.push(jsx::JsxValue::JsonValue(json::JsonValue::Str(
                         String::from("Text is fine here too."),
                     )));
@@ -126,5 +126,63 @@ fn parse_valid_jsx_element() {
                 },
             )),
         ))
+    )
+}
+
+#[test]
+fn serialize_jsx_element() {
+    assert_eq!(
+        serde_json::to_string_pretty(&jsx::root::<(&str, ErrorKind)>(VALID_JSX_ELEMENT).unwrap().1)
+            .unwrap(),
+        String::from(
+            r#"{
+  "type": "Hello",
+  "props": {
+    "count": 1.0,
+    "friend": "World"
+  },
+  "children": [
+    {
+      "type": "Goodbye",
+      "props": {
+        "signOff": true
+      },
+      "children": []
+    },
+    "You can put text here too.",
+    {
+      "Is it okay to put JSON values here?": true
+    },
+    {
+      "type": "ExpressionInception",
+      "props": {
+        "arrayProp": [
+          0.0,
+          "1",
+          true,
+          null
+        ],
+        "nullProp": null,
+        "objectProp": {
+          "cool": true
+        }
+      },
+      "children": []
+    },
+    {
+      "type": "Fragment",
+      "children": [
+        {
+          "type": "Fragment",
+          "children": [
+            "F R A G M E N T S"
+          ]
+        }
+      ]
+    },
+    "Text is fine here too."
+  ]
+}"#
+        )
     )
 }

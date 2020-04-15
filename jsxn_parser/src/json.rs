@@ -1,4 +1,7 @@
-use crate::{jsx::{root as jsx_value, JsxValue}, shared::sp};
+use crate::{
+    jsx::{root as jsx_value, JsxValue},
+    shared::sp,
+};
 use nom::{
     branch::alt,
     bytes::complete::{escaped, is_not, tag},
@@ -10,7 +13,8 @@ use nom::{
     sequence::{delimited, preceded, separated_pair, terminated},
     IResult,
 };
-use std::{collections::HashMap, str};
+use serde::{Serialize, Serializer};
+use std::{collections::BTreeMap, str};
 
 /// A JSON value
 #[derive(Debug, PartialEq, Clone)]
@@ -28,13 +32,30 @@ pub enum JsonValue {
     Array(Vec<JsonValue>),
 
     /// A JSON object
-    Object(HashMap<String, JsonValue>),
+    Object(BTreeMap<String, JsonValue>),
 
     /// A JSON null value
     Null,
 
     /// A JSX value
     JsxValue(Box<JsxValue>),
+}
+
+impl Serialize for JsonValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            JsonValue::Str(json_str) => json_str.serialize(serializer),
+            JsonValue::Boolean(json_boolean) => json_boolean.serialize(serializer),
+            JsonValue::Num(json_num) => json_num.serialize(serializer),
+            JsonValue::Array(json_array) => json_array.serialize(serializer),
+            JsonValue::Object(json_object) => json_object.serialize(serializer),
+            JsonValue::Null => serializer.serialize_none(),
+            JsonValue::JsxValue(jsx_value) => jsx_value.serialize(serializer),
+        }
+    }
 }
 
 fn json_boolean<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, bool, E> {
@@ -86,15 +107,22 @@ fn json_array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<Js
     )(i)
 }
 
-fn json_key_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, (String, JsonValue), E> {
-    context("json key value", separated_pair(
-        preceded(sp, json_string),
-        cut(preceded(sp, char(':'))),
-        json_value,
-    ))(i)
+fn json_key_value<'a, E: ParseError<&'a str>>(
+    i: &'a str,
+) -> IResult<&'a str, (String, JsonValue), E> {
+    context(
+        "json key value",
+        separated_pair(
+            preceded(sp, json_string),
+            cut(preceded(sp, char(':'))),
+            json_value,
+        ),
+    )(i)
 }
 
-fn json_object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, HashMap<String, JsonValue>, E> {
+fn json_object<'a, E: ParseError<&'a str>>(
+    i: &'a str,
+) -> IResult<&'a str, BTreeMap<String, JsonValue>, E> {
     context(
         "json object",
         preceded(
@@ -120,9 +148,7 @@ pub(crate) fn json_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
             map(double, JsonValue::Num),
             map(json_boolean, JsonValue::Boolean),
             map(tag("null"), |_| JsonValue::Null),
-            map(jsx_value, |jsx| {
-                JsonValue::JsxValue(Box::new(jsx))
-            }),
+            map(jsx_value, |jsx| JsonValue::JsxValue(Box::new(jsx))),
         )),
     )(i)
 }
@@ -131,7 +157,10 @@ pub(crate) fn json_value<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
 pub fn root<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, JsonValue, E> {
     delimited(
         sp,
-        alt((map(json_object, JsonValue::Object), map(json_array, JsonValue::Array))),
+        alt((
+            map(json_object, JsonValue::Object),
+            map(json_array, JsonValue::Array),
+        )),
         opt(sp),
     )(i)
 }

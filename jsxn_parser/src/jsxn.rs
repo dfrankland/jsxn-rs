@@ -6,6 +6,7 @@ use nom::{
     sequence::delimited,
     IResult,
 };
+use serde::{Serialize, Serializer};
 
 /// A JSXN value
 #[derive(Debug, PartialEq, Clone)]
@@ -15,6 +16,18 @@ pub enum JsxnValue {
 
     /// A JSON value
     JsonValue(json::JsonValue),
+}
+
+impl Serialize for JsxnValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            JsxnValue::JsxValue(json_value) => json_value.serialize(serializer),
+            JsxnValue::JsonValue(jsx_value) => jsx_value.serialize(serializer),
+        }
+    }
 }
 
 /// The root JSX or JSON of a JSXN tree
