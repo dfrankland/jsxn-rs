@@ -1,4 +1,4 @@
-use jsxn_parser::{json, jsx};
+use jsxn::{json, jsx};
 use nom::{
     error::{convert_error, ErrorKind, VerboseError},
     Err,

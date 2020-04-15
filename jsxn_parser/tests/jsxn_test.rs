@@ -1,4 +1,4 @@
-use jsxn_parser::{json, jsx, jsxn};
+use ::jsxn::{json, jsx, jsxn};
 use nom::error::ErrorKind;
 use std::collections::BTreeMap;
 
