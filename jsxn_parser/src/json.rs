@@ -77,18 +77,21 @@ pub(crate) fn json_string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a
     context(
         "json string",
         map(
-            delimited(
-                char('\"'),
-                escaped(
-                    is_not("\\\""),
-                    '\\',
-                    alt((
-                        map(one_of("\"\\/bfnrt"), |_| ()),
-                        map(json_unicode_sequence, |_| ()),
-                    )),
+            alt((
+                value("", tag("\"\"")),
+                delimited(
+                    char('\"'),
+                    escaped(
+                        is_not("\\\""),
+                        '\\',
+                        alt((
+                            map(one_of("\"\\/bfnrt"), |_| ()),
+                            map(json_unicode_sequence, |_| ()),
+                        )),
+                    ),
+                    char('\"'),
                 ),
-                char('\"'),
-            ),
+            )),
             String::from,
         ),
     )(i)
