@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 const VALID_JSON: &str = r#"
     {
         "a": 42,
-        "b": ["this is a string", "this is too 👍 \u2605", 12],
-        "c": { "hello" : "world" },
+        "b": ["this is a \"string\"", "this is too 👍 \u2605", 12],
+        "c": { "hello" : "world", "empty string":"" },
         "d": null,
         "e": <Element prop="value" />
     }
@@ -36,7 +36,9 @@ fn parse_valid_json() {
                     String::from("b"),
                     json::JsonValue::Array({
                         let mut array = vec![];
-                        array.push(json::JsonValue::Str(String::from("this is a string")));
+                        array.push(json::JsonValue::Str(String::from(
+                            "this is a \\\"string\\\"",
+                        )));
                         array.push(json::JsonValue::Str(String::from("this is too 👍 \\u2605")));
                         array.push(json::JsonValue::Num(12.0));
                         array
@@ -49,6 +51,10 @@ fn parse_valid_json() {
                         object.insert(
                             String::from("hello"),
                             json::JsonValue::Str(String::from("world")),
+                        );
+                        object.insert(
+                            String::from("empty string"),
+                            json::JsonValue::Str(String::from("")),
                         );
                         object
                     }),
@@ -128,11 +134,12 @@ fn serialize_json() {
             r#"{
   "a": 42.0,
   "b": [
-    "this is a string",
+    "this is a \\\"string\\\"",
     "this is too 👍 \\u2605",
     12.0
   ],
   "c": {
+    "empty string": "",
     "hello": "world"
   },
   "d": null,

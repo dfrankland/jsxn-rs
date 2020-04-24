@@ -3,7 +3,7 @@ use nom::error::ErrorKind;
 use std::collections::BTreeMap;
 
 const VALID_JSX_ELEMENT: &str = r#"
-    <Hello friend="World" count={1}>
+    <Hello friend="World" count={1} emptyString="" escapedQuotes=" \"Hi \" ">
         <Goodbye signOff />
         You can put text here too.
         {{
@@ -41,6 +41,16 @@ fn parse_valid_jsx_element() {
                         String::from("count"),
                         jsx::JsxValue::JsxExpression(Box::new(jsx::JsxValue::JsonValue(
                             json::JsonValue::Num(1.0),
+                        ))),
+                    );
+                    props.insert(
+                        String::from("emptyString"),
+                        jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(""))),
+                    );
+                    props.insert(
+                        String::from("escapedQuotes"),
+                        jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(
+                            " \\\"Hi \\\" ",
                         ))),
                     );
                     props
@@ -139,6 +149,8 @@ fn serialize_jsx_element() {
   "type": "Hello",
   "props": {
     "count": 1.0,
+    "emptyString": "",
+    "escapedQuotes": " \\\"Hi \\\" ",
     "friend": "World"
   },
   "children": [
