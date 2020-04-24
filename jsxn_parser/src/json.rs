@@ -80,7 +80,7 @@ pub(crate) fn json_string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a
             delimited(
                 char('\"'),
                 escaped(
-                    is_not("\""),
+                    is_not("\\\""),
                     '\\',
                     alt((
                         map(one_of("\"\\/bfnrt"), |_| ()),
