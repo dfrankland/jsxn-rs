@@ -1,5 +1,6 @@
 use ::jsxn::{json, jsx, jsxn};
 use nom::error::ErrorKind;
+use pretty_assertions::assert_eq;
 use std::collections::BTreeMap;
 
 const VALID_JSX_ELEMENT: &str = r#"

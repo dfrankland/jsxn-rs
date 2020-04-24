@@ -18,3 +18,4 @@ serde = { version = "1.0.104", features = ["derive"] }
 
 [dev-dependencies]
 serde_json = "1.0.48"
+pretty_assertions = "0.6.1"

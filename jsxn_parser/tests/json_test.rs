@@ -3,6 +3,7 @@ use nom::{
     error::{convert_error, ErrorKind, VerboseError},
     Err,
 };
+use pretty_assertions::assert_eq;
 use std::collections::BTreeMap;
 
 const VALID_JSON: &str = r#"
