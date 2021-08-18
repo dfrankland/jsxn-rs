@@ -4,7 +4,7 @@ use pretty_assertions::assert_eq;
 use std::collections::BTreeMap;
 
 const VALID_JSX_ELEMENT: &str = r#"
-    <Hello friend="World" count={1} emptyString="" escapedQuotes=" \"Hi \" ">
+    <Hello friend="World" count={1} emptyString="" escapedQuotes=" \"Hi\" ">
         <Goodbye signOff />
         You can put text here too.
         {{
@@ -51,7 +51,7 @@ fn parse_valid_jsx_element() {
                     props.insert(
                         String::from("escapedQuotes"),
                         jsx::JsxValue::JsonValue(json::JsonValue::Str(String::from(
-                            " \\\"Hi \\\" ",
+                            " \"Hi\" ",
                         ))),
                     );
                     props
@@ -151,7 +151,7 @@ fn serialize_jsx_element() {
   "props": {
     "count": 1.0,
     "emptyString": "",
-    "escapedQuotes": " \\\"Hi \\\" ",
+    "escapedQuotes": " \"Hi\" ",
     "friend": "World"
   },
   "children": [

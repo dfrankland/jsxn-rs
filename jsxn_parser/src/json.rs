@@ -4,7 +4,7 @@ use crate::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{escaped, is_not, tag},
+    bytes::complete::{escaped_transform, is_not, tag},
     character::complete::{char, hex_digit1, one_of},
     combinator::{cut, map, opt, value, verify},
     error::{context, ParseError},
@@ -64,11 +64,19 @@ fn json_boolean<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, bool
     context("json boolean", alt((parse_true, parse_false)))(i)
 }
 
-fn json_unicode_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
+fn json_unicode_sequence<'a, 'b, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'b str, E> {
     context(
         "json unicode sequence",
-        verify(preceded(char('u'), hex_digit1), |hex_digits: &str| {
+        map(verify(preceded(char('u'), hex_digit1), |hex_digits: &str| {
             hex_digits.len() == 4
+        }), |s: &str| {
+            println!("UNICODE: {}", s);
+            let some_v1: &'static str = "\\u{";
+            let some_v2: &'static str = "}";
+            let some_new: &'a str = some_v1 + s + some_v2;
+            let new_value = format!("\\u{{{}}}", s);
+            println!("NEW UNICODE: {}", new_value);
+            new_value.as_str()
         }),
     )(i)
 }
@@ -76,24 +84,28 @@ fn json_unicode_sequence<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a 
 pub(crate) fn json_string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, String, E> {
     context(
         "json string",
-        map(
-            alt((
-                value("", tag("\"\"")),
+        alt((
+                map(value("", tag("\"\"")), String::from),
                 delimited(
                     char('\"'),
-                    escaped(
+                    escaped_transform(
                         is_not("\\\""),
                         '\\',
                         alt((
-                            map(one_of("\"\\/bfnrt"), |_| ()),
-                            map(json_unicode_sequence, |_| ()),
+                            value("\"", tag("\"")),
+                            value("\\", tag("\\")),
+                            // value("t", tag("t")),
+                            // value("b", tag("\\b")),
+                            // value("f", tag("\\f")),
+                            value("\n", tag("n")),
+                            // value("r", tag("\\r")),
+                            // value("t", tag("\\t")),
+                            json_unicode_sequence,
                         )),
                     ),
                     char('\"'),
                 ),
             )),
-            String::from,
-        ),
     )(i)
 }
 
